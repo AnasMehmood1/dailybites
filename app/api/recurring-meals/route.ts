@@ -36,6 +36,12 @@ const RecurringMealSchema = new mongoose.Schema({
 // Create RecurringMeal model
 const RecurringMeal = mongoose.models.RecurringMeal || mongoose.model("RecurringMeal", RecurringMealSchema)
 
+// Define an interface for MenuItem
+interface MenuItem {
+  name: string;
+  price: number;
+}
+
 export async function POST(request: Request) {
   try {
     // Authenticate user
@@ -57,7 +63,7 @@ export async function POST(request: Request) {
 
     // Ensure prices are numbers
     Object.keys(meals).forEach((mealType) => {
-      meals[mealType].items = meals[mealType].items.map((item) => ({
+      meals[mealType].items = meals[mealType].items.map((item: MenuItem) => ({
         ...item,
         price: typeof item.price === "number" ? item.price : Number.parseFloat(item.price) || 0,
       }))
