@@ -9,8 +9,21 @@ import { getMenuForDate } from "@/lib/api"
 import { checkAuth } from "@/lib/auth"
 import { Skeleton } from "@/components/ui/skeleton"
 
+interface MenuItem {
+  name: string;
+  price: number;
+  description?: string;
+  recipe?: string;
+}
+
+interface Menu {
+  breakfast?: { items: MenuItem[] };
+  lunch?: { items: MenuItem[] };
+  dinner?: { items: MenuItem[] };
+}
+
 export default function MenuDetailPage({ params }: { params: { date: string } }) {
-  const [menu, setMenu] = useState(null)
+  const [menu, setMenu] = useState<Menu | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const date = params.date
@@ -104,7 +117,7 @@ export default function MenuDetailPage({ params }: { params: { date: string } })
   )
 }
 
-function MealCard({ title, meal }) {
+function MealCard({ title, meal }: { title: string; meal: { items: MenuItem[] } | undefined }) {
   if (!meal || !meal.items || meal.items.length === 0) {
     return (
       <Card>

@@ -13,12 +13,23 @@ import { getMenuForDate, updateMenu } from "@/lib/api"
 import { checkAuth } from "@/lib/auth"
 import { PlusCircle, Trash2 } from "lucide-react"
 
+// Define the MenuItem interface
+interface MenuItem {
+  name: string;
+  description?: string;
+  recipe?: string;
+  price: number;
+}
+
+// Define a union type for the valid fields
+type MenuItemField = "name" | "description" | "recipe" | "price";
+
 export default function EditMenuPage({ params }: { params: { date: string } }) {
   const router = useRouter()
   const [date, setDate] = useState(params.date)
-  const [breakfast, setBreakfast] = useState([{ name: "", description: "", recipe: "" }])
-  const [lunch, setLunch] = useState([{ name: "", description: "", recipe: "" }])
-  const [dinner, setDinner] = useState([{ name: "", description: "", recipe: "" }])
+  const [breakfast, setBreakfast] = useState([{ name: "", description: "", recipe: "", price: 0 }])
+  const [lunch, setLunch] = useState([{ name: "", description: "", recipe: "", price: 0 }])
+  const [dinner, setDinner] = useState([{ name: "", description: "", recipe: "", price: 0 }])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -32,9 +43,9 @@ export default function EditMenuPage({ params }: { params: { date: string } }) {
       try {
         const menuData = await getMenuForDate(date)
         if (menuData) {
-          setBreakfast(menuData.breakfast.items || [{ name: "", description: "", recipe: "" }])
-          setLunch(menuData.lunch.items || [{ name: "", description: "", recipe: "" }])
-          setDinner(menuData.dinner.items || [{ name: "", description: "", recipe: "" }])
+          setBreakfast(menuData.breakfast.items || [{ name: "", description: "", recipe: "", price: 0 }])
+          setLunch(menuData.lunch.items || [{ name: "", description: "", recipe: "", price: 0 }])
+          setDinner(menuData.dinner.items || [{ name: "", description: "", recipe: "", price: 0 }])
         }
       } catch (error) {
         console.error("Failed to fetch menu:", error)
@@ -53,9 +64,9 @@ export default function EditMenuPage({ params }: { params: { date: string } }) {
     try {
       const menuData = {
         date,
-        breakfast: { items: breakfast.filter((item) => item.name.trim() !== "") },
-        lunch: { items: lunch.filter((item) => item.name.trim() !== "") },
-        dinner: { items: dinner.filter((item) => item.name.trim() !== "") },
+        breakfast: { items: breakfast.filter((item) => item.name.trim() !== "").map(item => ({ ...item, price: item.price })) },
+        lunch: { items: lunch.filter((item) => item.name.trim() !== "").map(item => ({ ...item, price: item.price })) },
+        dinner: { items: dinner.filter((item) => item.name.trim() !== "").map(item => ({ ...item, price: item.price })) },
       }
 
       await updateMenu(date, menuData)
@@ -70,7 +81,7 @@ export default function EditMenuPage({ params }: { params: { date: string } }) {
 
   const addItem = (mealType: "breakfast" | "lunch" | "dinner") => {
     const setMeal = mealType === "breakfast" ? setBreakfast : mealType === "lunch" ? setLunch : setDinner
-    setMeal((prev) => [...prev, { name: "", description: "", recipe: "" }])
+    setMeal((prev) => [...prev, { name: "", description: "", recipe: "", price: 0 }])
   }
 
   const removeItem = (mealType: "breakfast" | "lunch" | "dinner", index: number) => {
@@ -78,11 +89,11 @@ export default function EditMenuPage({ params }: { params: { date: string } }) {
     setMeal((prev) => {
       const newItems = [...prev]
       newItems.splice(index, 1)
-      return newItems.length ? newItems : [{ name: "", description: "", recipe: "" }]
+      return newItems.length ? newItems : [{ name: "", description: "", recipe: "", price: 0 }]
     })
   }
 
-  const updateItem = (mealType: "breakfast" | "lunch" | "dinner", index: number, field: string, value: string) => {
+  const updateItem = (mealType: "breakfast" | "lunch" | "dinner", index: number, field: keyof MenuItem, value: string | number) => {
     const setMeal = mealType === "breakfast" ? setBreakfast : mealType === "lunch" ? setLunch : setDinner
     setMeal((prev) => {
       const newItems = [...prev]
@@ -133,7 +144,7 @@ export default function EditMenuPage({ params }: { params: { date: string } }) {
                 items={breakfast}
                 onAdd={() => addItem("breakfast")}
                 onRemove={(index) => removeItem("breakfast", index)}
-                onUpdate={(index, field, value) => updateItem("breakfast", index, field, value)}
+                onUpdate={(index, field, value) => updateItem("breakfast", index, field as keyof MenuItem, value)}
               />
             </TabsContent>
 
@@ -143,7 +154,7 @@ export default function EditMenuPage({ params }: { params: { date: string } }) {
                 items={lunch}
                 onAdd={() => addItem("lunch")}
                 onRemove={(index) => removeItem("lunch", index)}
-                onUpdate={(index, field, value) => updateItem("lunch", index, field, value)}
+                onUpdate={(index, field, value) => updateItem("lunch", index, field as MenuItemField, value)}
               />
             </TabsContent>
 
@@ -153,7 +164,7 @@ export default function EditMenuPage({ params }: { params: { date: string } }) {
                 items={dinner}
                 onAdd={() => addItem("dinner")}
                 onRemove={(index) => removeItem("dinner", index)}
-                onUpdate={(index, field, value) => updateItem("dinner", index, field, value)}
+                onUpdate={(index, field, value) => updateItem("dinner", index, field as MenuItemField, value)}
               />
             </TabsContent>
           </Tabs>
@@ -169,7 +180,19 @@ export default function EditMenuPage({ params }: { params: { date: string } }) {
   )
 }
 
-function MealForm({ title, items, onAdd, onRemove, onUpdate }) {
+function MealForm({
+  title,
+  items,
+  onAdd,
+  onRemove,
+  onUpdate,
+}: {
+  title: string;
+  items: { name: string; description?: string; recipe?: string; price: number }[];
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  onUpdate: (index: number, field: keyof MenuItem, value: string | number) => void;
+}) {
   return (
     <Card>
       <CardHeader>
